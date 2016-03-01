@@ -11,8 +11,10 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.hardware.SensorManager;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -23,15 +25,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
     }
 
     @Override
@@ -53,10 +46,15 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
+        if (id == R.id.action_sensors) {
+            Intent intent = new Intent(this, SensorsListActivity.class);
+            startActivity(intent);
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
-    public void startCollecting(View view){
+    public void startCollecting(View view) {
         Intent intent = new Intent(this, SensorActivity.class);
         startActivity(intent);
     }
