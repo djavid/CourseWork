@@ -2,7 +2,13 @@
     <string name="app_name">CourseWork</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_sensor">SensorActivity</string>
+
     <string name="button_start">Start collecting data</string>
+    <string name="button_recognise">Start recognising data</string>
+    <string name="button_stop_saving">Stop</string>
+    <string name="button_start_recognising">Start</string>
+    <string name="button_stop_recognising">Stop</string>
+
     <string name="action_sensors">Sensors list</string>
     <string name="action_save">Save on device</string>
     <string name="title_activity_sensors_list">SensorsListActivity</string>
@@ -12,16 +18,31 @@
     <string name="type_accelerometer">Accelerometer</string>
     <string name="type_magnetic_field">Magnetic field</string>
     <string name="type_gyroscope">Gyroscope</string>
-    <string name="type_proximity">Proximity</string>
     <string name="type_gravity">Gravity</string>
     <string name="type_linear_acceleration">Linear acceleration</string>
     <string name="type_rotation_vector">Rotation vector</string>
 
+    <string name="running_activity">Running</string>
+    <string name="walking_activity">Walking</string>
+    <string name="grabbing_activity">Grabbing</string>
+    <string name="travelling_activity">Travelling</string>
+    <string name="waiting_activity">Recognising</string>
+
     <string name="value_accelerometer">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
     <string name="value_magnetic_field">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
     <string name="value_gyroscope">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
-    <string name="value_proximity">distance: %1$f</string>
     <string name="value_gravity">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
     <string name="value_linear_acceleration">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
     <string name="value_rotation_vector">x: %1$.4f; y: %2$.4f; z: %3$.4f</string>
+    <string name="value_prediction_results">R: %1$f; W: %2$f; G: %3$f; T: %4$f</string>
+    <string name="value_prediction_timer">prediction starts at %1$d</string>
+
+    <string-array name="labels">
+        <item>RUN</item>
+        <item>WALK</item>
+        <item>TRAVEL</item>
+        <item>GRAB
+        </item>
+    </string-array>
+    <string name="title_activity_recognise">RecogniseActivity</string>
 </resources>

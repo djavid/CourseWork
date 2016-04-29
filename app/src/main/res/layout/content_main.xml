@@ -13,19 +13,27 @@
     tools:context="djavid.coursework.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/button_send"
+            android:id="@+id/button_start"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_start"
             android:onClick="startCollecting" />
 
-    </LinearLayout>
+        <Button
+            android:id="@+id/button_recognise"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/button_start"
+            android:text="@string/button_recognise"
+            android:onClick="startRecognising"/>
+
+    </RelativeLayout>
 
 
 </LinearLayout>

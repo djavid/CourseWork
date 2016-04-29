@@ -14,6 +14,7 @@ import android.hardware.SensorManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,6 +57,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void startCollecting(View view) {
         Intent intent = new Intent(this, SensorActivity.class);
+        startActivity(intent);
+    }
+
+    public void startRecognising(View view) {
+        Intent intent = new Intent(this, RecogniseActivity.class);
         startActivity(intent);
     }
 }

@@ -39,6 +39,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="djavid.coursework.MainActivity" />
         </activity>
+        <activity
+            android:name=".RecogniseActivity"
+            android:label="@string/title_activity_recognise"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="djavid.coursework.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

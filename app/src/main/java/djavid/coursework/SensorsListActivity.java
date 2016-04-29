@@ -29,7 +29,7 @@ public class SensorsListActivity extends ListActivity {
 
         for (int i = 0; i < sensorsList.size(); i++) {
             sensorsListName.add(sensorsList.get(i).getName() +
-                    " (" + sensorsList.get(i).getStringType() + ")");
+                    " (" + sensorsList.get(i).toString() + ")");
         }
 
         setListAdapter(new ArrayAdapter<>(this,

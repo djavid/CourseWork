@@ -1,7 +1,9 @@
 package djavid.coursework;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -9,16 +11,22 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Chronometer;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.app.ListActivity;
 import android.widget.Toast;
@@ -28,30 +36,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SensorActivity extends AppCompatActivity implements SensorEventListener {
-    private final static String FILE_ACCELEROMETER = "accelerometer.txt";
-    private final static String FILE_MAGNETIC_FIELD = "magnetic_field.txt";
-    private final static String FILE_GYROSCOPE = "gyroscope.txt";
-    private final static String FILE_PROXIMITY = "proximity.txt";
-    private final static String FILE_GRAVITY = "gravity.txt";
-    private final static String FILE_LINEAR_ACCELERATION = "linear_acceleration.txt";
-    private final static String FILE_ROTATION_VECTOR = "rotation_vector.txt";
-
-    private String sAccelerometer = "";
-    private String sMagneticField = "";
-    private String sGyroscope = "";
-    private String sProximity = "";
-    private String sGravity = "";
-    private String sLinearAcceleration = "";
-    private String sRotationVector = "";
-
+    //private final static String FILE_DATA = "data.txt";
     private final static String DIRECTORYSD = "Sensors";
+    private String HEADER;
+    private String FILE_NAME;
+    private File sdPath;
+    private CLASS_LABEL classLabel;
 
     private SensorManager mSensorManager;
 
     private Sensor mAccelerometer;
-    private Sensor mMagneticField;
     private Sensor mGyroscope;
-    private Sensor mProximity;
+    private Sensor mMagneticField;
     private Sensor mGravity;
     private Sensor mLinearAcceleration;
     private Sensor mRotationVector;
@@ -60,21 +56,28 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
     private float[] orientation;    //матрица положения в пространстве
 
     private float[] accelerometer;  //данные с акселерометра
-    private float[] magneticField;         //данные с геомагнитного датчика
+    private float[] magneticField;  //данные с геомагнитного датчика
     private float[] gyroscope;
-    private float proximity;
     private float[] gravity;
     private float[] linearAcceleration;
     private float[] rotationVector;
 
-
     private TextView viewAccelerometer;
     private TextView viewMagneticField;
     private TextView viewGyroscope;
-    private TextView viewProximity;
     private TextView viewGravity;
     private TextView viewLinearAcceleration;
     private TextView viewRotationVector;
+
+    private File fileData;
+    private boolean startedSaving;
+    private int sensorCount = 0;
+
+    private String oldData = "";
+
+    enum CLASS_LABEL {
+        RUN, WALK, TRAVEL, GRAB
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,12 +86,17 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        startedSaving = false;
+        findViewById(R.id.button_stop).setVisibility(View.INVISIBLE);
+
+        final Chronometer chrono = (Chronometer) findViewById(R.id.chronometer);
+        chrono.setVisibility(View.INVISIBLE);
+
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE); // Получаем менеджер сенсоров
 
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mMagneticField = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         mLinearAcceleration = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         mRotationVector = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
@@ -106,10 +114,22 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         viewAccelerometer = (TextView) findViewById(R.id.valueAccelerometer);
         viewMagneticField = (TextView) findViewById(R.id.valueMagneticField);
         viewGyroscope = (TextView) findViewById(R.id.valueGyroscope);
-        viewProximity = (TextView) findViewById(R.id.valueProximity);
         viewGravity = (TextView) findViewById(R.id.valueGravity);
         viewLinearAcceleration = (TextView) findViewById(R.id.valueLinearAcceleration);
         viewRotationVector = (TextView) findViewById(R.id.valueRotationVector);
+
+//        HEADER = "\"ones\",\"acc_x\",\"acc_y\",\"acc_z\",\"mag_x\",\"mag_y\",\"mag_z\",\"gyr_x\",\"gyr_y\",\"gyr_z\"," +
+//                "\"grav_x\",\"grav_y\",\"grav_z\",\"lin_x\",\"lin_y\",\"lin_z\",\"rot_x\",\"rot_y\",\"rot_z\",\"label\"\n";
+        HEADER = "\"ones\",\"acc_x\",\"acc_y\",\"acc_z\",\"gyr_x\",\"gyr_y\",\"gyr_z\",\"label\"\n";
+
+        classLabel = CLASS_LABEL.WALK;
+
+        sdPath = Environment.getExternalStorageDirectory();
+        sdPath = new File(sdPath.getAbsolutePath() + "/" + DIRECTORYSD);
+
+        if(!sdPath.exists()) {
+            sdPath.mkdirs();
+        }
     }
 
     @Override
@@ -128,7 +148,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_save) {
-            saveFiles();
+            saveFilesButton();
         }
 
         return super.onOptionsItemSelected(item);
@@ -149,10 +169,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
             System.arraycopy(event.values, 0, gyroscope, 0, 3);
         }
 
-        if (type == Sensor.TYPE_PROXIMITY) {
-            proximity = event.values[0];
-        }
-
         if (type == Sensor.TYPE_GRAVITY) {
             System.arraycopy(event.values, 0, gravity, 0, 3);
         }
@@ -169,19 +185,29 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        sensorCount += 1;
         getData(event);
 
         SensorManager.getRotationMatrix(rotation, null, accelerometer, magneticField); //получаем матрицу поворота
         SensorManager.getOrientation(rotation, orientation); //получаем данные ориентации устройства в пространстве
 
-        viewAccelerometer.setVisibility(View.VISIBLE);
-        viewMagneticField.setVisibility(View.VISIBLE);
-        viewGyroscope.setVisibility(View.VISIBLE);
-        viewProximity.setVisibility(View.VISIBLE);
-        viewGravity.setVisibility(View.VISIBLE);
-        viewLinearAcceleration.setVisibility(View.VISIBLE);
-        viewRotationVector.setVisibility(View.VISIBLE);
+//        String allData = "1" + "," + accelerometer[0] + "," +accelerometer[1] + "," +accelerometer[2] + "," +
+//                magneticField[0] + "," + magneticField[1] + "," + magneticField[2] + "," +
+//                gyroscope[0] + "," + gyroscope[1] + "," + gyroscope[2] + "," +
+//                gravity[0] + "," + gravity[1] + "," + gravity[2] + "," +
+//                linearAcceleration[0] + "," + linearAcceleration[1] + "," + linearAcceleration[2] + "," +
+//                rotationVector[0] + "," + rotationVector[1] + "," + rotationVector[2] + "," +
+//                classLabel.ordinal() + "\n";
+        String allData = "1" + "," +
+                accelerometer[0] + "," +accelerometer[1] + "," +accelerometer[2] + "," +
+                gyroscope[0] + "," + gyroscope[1] + "," + gyroscope[2] + "," +
+                classLabel.ordinal() + "\n";
 
+        if(startedSaving) {
+            saveToFile(allData);
+        }
+
+        //output
         String str, strFinal;
 
         str = getResources().getString(R.string.value_accelerometer);
@@ -190,10 +216,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 accelerometer[1],
                 accelerometer[2]);
         viewAccelerometer.setText(strFinal);
-        sAccelerometer += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                accelerometer[0],
-                accelerometer[1],
-                accelerometer[2]);
 
         str = getResources().getString(R.string.value_magnetic_field);
         strFinal = String.format(str,
@@ -201,10 +223,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 magneticField[1],
                 magneticField[2]);
         viewMagneticField.setText(strFinal);
-        sMagneticField += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                magneticField[0],
-                magneticField[1],
-                magneticField[2]);
 
         str = getResources().getString(R.string.value_gyroscope);
         strFinal = String.format(str,
@@ -212,15 +230,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 gyroscope[1],
                 gyroscope[2]);
         viewGyroscope.setText(strFinal);
-        sGyroscope += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                gyroscope[0],
-                gyroscope[1],
-                gyroscope[2]);
-
-        str = getResources().getString(R.string.value_proximity);
-        strFinal = String.format(str, proximity);
-        viewProximity.setText(strFinal);
-        sProximity += String.format("distance: %1$f \n", proximity);
 
         str = getResources().getString(R.string.value_gravity);
         strFinal = String.format(str,
@@ -228,10 +237,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 gravity[1],
                 gravity[2]);
         viewGravity.setText(strFinal);
-        sGravity += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                gravity[0],
-                gravity[1],
-                gravity[2]);
 
         str = getResources().getString(R.string.value_linear_acceleration);
         strFinal = String.format(str,
@@ -239,10 +244,6 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 linearAcceleration[1],
                 linearAcceleration[2]);
         viewLinearAcceleration.setText(strFinal);
-        sLinearAcceleration += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                linearAcceleration[0],
-                linearAcceleration[1],
-                linearAcceleration[2]);
 
         str = getResources().getString(R.string.value_rotation_vector);
         strFinal = String.format(str,
@@ -250,10 +251,7 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
                 rotationVector[1],
                 rotationVector[2]);
         viewRotationVector.setText(strFinal);
-        sRotationVector += String.format("x: %1$.4f; y: %2$.4f; z: %3$.4f \n",
-                rotationVector[0],
-                rotationVector[1],
-                rotationVector[2]);
+
     }
 
     @Override
@@ -267,10 +265,16 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL); //SENSOR_DELAY_UI
         mSensorManager.registerListener(this, mMagneticField, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mGravity, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mLinearAcceleration, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(this, mRotationVector, SensorManager.SENSOR_DELAY_NORMAL);
+
+        viewAccelerometer.setVisibility(View.VISIBLE);
+        viewMagneticField.setVisibility(View.VISIBLE);
+        viewGyroscope.setVisibility(View.VISIBLE);
+        viewGravity.setVisibility(View.VISIBLE);
+        viewLinearAcceleration.setVisibility(View.VISIBLE);
+        viewRotationVector.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -279,87 +283,102 @@ public class SensorActivity extends AppCompatActivity implements SensorEventList
         mSensorManager.unregisterListener(this);
     }
 
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
+    @Override
+    protected void onStop(){
+        super.onStop();
     }
 
-    public boolean isExternalStorageReadable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state) ||
-                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            return true;
+    private void saveToFile(String values) {
+        if (!values.equals(oldData)) {
+            oldData = values;
+
+            try {
+                BufferedWriter bw;
+
+                if (!fileData.exists()) {
+                    fileData.createNewFile();
+                }
+
+                bw = new BufferedWriter(new FileWriter(fileData, true));
+                bw.append(values);
+                bw.flush();
+                bw.close();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-        return false;
     }
 
-    private void saveFiles() {
-        File sdPath = Environment.getExternalStorageDirectory();
-        sdPath = new File(sdPath.getAbsolutePath() + "/" + DIRECTORYSD);
-        if(!sdPath.exists()) {
-            sdPath.mkdirs();
-        }
+    private void saveFilesButton() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(SensorActivity.this);
+        alert.setTitle("Choose file name");
 
-        File fileAccelerometer = new File(sdPath, FILE_ACCELEROMETER);
-        File fileMagneticField = new File(sdPath, FILE_MAGNETIC_FIELD);
-        File fileGyroscope = new File(sdPath, FILE_GYROSCOPE);
-        File fileProximity = new File(sdPath, FILE_PROXIMITY);
-        File fileGravity = new File(sdPath, FILE_GRAVITY);
-        File fileLinearAcceleration = new File(sdPath, FILE_LINEAR_ACCELERATION);
-        File fileRotationVector = new File(sdPath, FILE_ROTATION_VECTOR);
+        final View view = getLayoutInflater().inflate(R.layout.alert_dialog, null);
+        final EditText input = (EditText) view.findViewById(R.id.input);
+        final Spinner spinner = (Spinner) view.findViewById(R.id.spinner);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                classLabel = CLASS_LABEL.valueOf((String) parent.getItemAtPosition(position));
+            }
 
-        try {
-            String string = "Hello world!";
-            BufferedWriter bw;
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
 
-            fileAccelerometer.createNewFile();
-            fileMagneticField.createNewFile();
-            fileGyroscope.createNewFile();
-            fileProximity.createNewFile();
-            fileGravity.createNewFile();
-            fileLinearAcceleration.createNewFile();
-            fileRotationVector.createNewFile();
+            }
+        });
 
-            bw = new BufferedWriter(new FileWriter(fileAccelerometer));
-            bw.write(sAccelerometer);
-            bw.flush();
-            bw.close();
+        alert.setView(view);
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                FILE_NAME = input.getText().toString();
+                FILE_NAME.trim();
+                FILE_NAME += ".txt";
 
-            bw = new BufferedWriter(new FileWriter(fileMagneticField));
-            bw.write(sMagneticField);
-            bw.flush();
-            bw.close();
+                fileData = new File(sdPath, FILE_NAME);
+                try {
+                    if (fileData.exists()) {
+                        fileData.delete();
+                    }
 
-            bw = new BufferedWriter(new FileWriter(fileGyroscope));
-            bw.write(sGyroscope);
-            bw.flush();
-            bw.close();
+                    fileData.createNewFile();
+                    saveToFile(HEADER);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-            bw = new BufferedWriter(new FileWriter(fileProximity));
-            bw.write(sProximity);
-            bw.flush();
-            bw.close();
+                if (!startedSaving) {
+                    Chronometer chrono = (Chronometer) findViewById(R.id.chronometer);
+                    chrono.setVisibility(View.VISIBLE);
+                    findViewById(R.id.button_stop).setVisibility(View.VISIBLE);
 
-            bw = new BufferedWriter(new FileWriter(fileGravity));
-            bw.write(sGravity);
-            bw.flush();
-            bw.close();
+                    startedSaving = true;
+                    chrono.setBase(SystemClock.elapsedRealtime());
+                    chrono.start();
+                }
+            }
+        });
 
-            bw = new BufferedWriter(new FileWriter(fileLinearAcceleration));
-            bw.write(sLinearAcceleration);
-            bw.flush();
-            bw.close();
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
 
-            bw = new BufferedWriter(new FileWriter(fileRotationVector));
-            bw.write(sRotationVector);
-            bw.flush();
-            bw.close();
+        alert.show();
+    }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void stopSavingFiles(View view) {
+        if(startedSaving) {
+            startedSaving = false;
+            Chronometer chrono = (Chronometer) findViewById(R.id.chronometer);
+            chrono.stop();
+            chrono.setBase(SystemClock.elapsedRealtime());
+
+            findViewById(R.id.button_stop).setVisibility(View.INVISIBLE);
         }
     }
 
